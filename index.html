@@ -315,7 +315,7 @@
    Cloudflare Worker (see tmdb-proxy.worker.js + DEPLOY.md). Paste your Worker
    URL below; the Worker injects the key server-side so it's never exposed.
    ========================================================================= */
-const TMDB_PROXY = "tmdb-proxy.mharma7.workers.dev";
+const TMDB_PROXY = "https://tmdb-proxy.mharma7.workers.dev";
 // Build a proxied TMDB URL from a path+query that OMITS api_key (Worker adds it).
 function tmdb(path) { return TMDB_PROXY.replace(/\/$/, '') + path; }
 
