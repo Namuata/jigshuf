@@ -12,6 +12,8 @@
 <meta property="og:url" content="https://YOUR_DOMAIN_HERE/" />
 <meta property="og:image" content="https://YOUR_DOMAIN_HERE/share.png" />
 <meta name="twitter:card" content="summary_large_image" />
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5574535299348276" crossorigin="anonymous"></script>
 <style>
   :root {
     --bg: #0f1117;
@@ -331,25 +333,22 @@ function supabaseEnabled() {
 }
 
 /* =========================================================================
-   GOOGLE ADSENSE — paste your publisher ID after Google approves the site
-   (e.g. "ca-pub-1234567890123456"). Leave blank to hide ad slots entirely.
-   Optionally set each slot's data-ad-slot in the HTML once you create units.
+   GOOGLE ADSENSE — the loader <script> lives in <head> (handles verification +
+   Auto Ads). This only activates MANUAL ad units. To use one, create an ad unit
+   in AdSense, then paste its slot id into a slot's data-ad-slot in the HTML.
    ========================================================================= */
-const ADSENSE_CLIENT = "";
+const ADSENSE_CLIENT = "ca-pub-5574535299348276";
 function initAds() {
   if (!ADSENSE_CLIENT) return;
-  const s = document.createElement('script');
-  s.async = true;
-  s.crossOrigin = 'anonymous';
-  s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT;
-  document.head.appendChild(s);
   document.querySelectorAll('.ad-slot').forEach(slot => {
+    const slotId = slot.dataset.adSlot;
+    if (!slotId) return; // leave dormant until you have a real ad-unit id
     slot.style.display = 'block';
     const ins = document.createElement('ins');
     ins.className = 'adsbygoogle';
     ins.style.display = 'block';
     ins.setAttribute('data-ad-client', ADSENSE_CLIENT);
-    ins.setAttribute('data-ad-slot', slot.dataset.adSlot || '');
+    ins.setAttribute('data-ad-slot', slotId);
     ins.setAttribute('data-ad-format', 'auto');
     ins.setAttribute('data-full-width-responsive', 'true');
     slot.appendChild(ins);
