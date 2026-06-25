@@ -1,0 +1,12 @@
+# Local Claude Code settings — can accumulate machine-specific commands; never commit.
+.claude/settings.local.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+
+# Never commit real secrets if a future env file is added
+.env
+.dev.vars

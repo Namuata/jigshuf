@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jigshuffle — Guess the Photo by Category</title>
+<meta name="description" content="Jigshuffle is a guessing game: a scrambled image self-sorts into place — name the movie, super hero, anime, Pokémon, or country flag before it finishes. Beat the global leaderboard." />
+<!-- Social previews — set og:url / og:image to your live domain + a 1200x630 share image -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Jigshuffle — can you guess it before it unscrambles?" />
+<meta property="og:description" content="Movies, characters, anime, Pokémon, flags & more. Race the global leaderboard." />
+<meta property="og:url" content="https://YOUR_DOMAIN_HERE/" />
+<meta property="og:image" content="https://YOUR_DOMAIN_HERE/share.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #1a1d27;
+    --panel-2: #232735;
+    --accent: #ffb347;
+    --accent-2: #47b8ff;
+    --text: #e8eaf0;
+    --muted: #8b90a3;
+    --good: #5fd38a;
+    --border: #2c3142;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #1c2030, var(--bg));
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; letter-spacing: 0.5px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 16px; }
+
+  .stage, .settings, .history, .cat-row, .answer { width: 800px; max-width: 100%; }
+
+  /* Category selector */
+  .cat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .cat-btn {
+    padding: 12px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.05s;
+  }
+  .cat-btn:hover { background: var(--panel-2); }
+  .cat-btn:active { transform: translateY(1px); }
+  .cat-btn.active { border-color: var(--accent); background: #2a2616; color: var(--accent); font-weight: 600; }
+
+  .canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 800 / 600;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #11141d;
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+  #fxCanvas { position: absolute; inset: 0; pointer-events: none; }
+  .overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+    background: rgba(10,12,18,0.88);
+    font-size: 0.95rem; color: var(--muted); text-align: center; padding: 24px;
+    transition: opacity 0.3s;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Answer banner */
+  .answer {
+    margin: 14px 0 4px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #16321f, #1a2d3a);
+    border: 1px solid #2e5a3e;
+    display: none;
+  }
+  .answer.show { display: block; animation: pop 0.4s ease-out; }
+  @keyframes pop { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .answer .label { font-size: 0.72rem; letter-spacing: 1px; color: var(--good); text-transform: uppercase; }
+  .answer .text { font-size: 1.5rem; font-weight: 700; margin-top: 2px; }
+  .answer .meta { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+
+  .hud {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 14px 0; gap: 12px; flex-wrap: wrap;
+  }
+  .timer { font-variant-numeric: tabular-nums; font-size: 1.5rem; font-weight: 600; letter-spacing: 1px; }
+  .timer .label { font-size: 0.7rem; color: var(--muted); display: block; font-weight: 400; letter-spacing: 0; }
+  .progress { flex: 1; min-width: 140px; height: 8px; background: var(--panel-2); border-radius: 99px; overflow: hidden; }
+  .progress > div { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition: width 0.15s; }
+  .pct { font-size: 0.8rem; color: var(--muted); min-width: 42px; text-align: right; }
+
+  .guess-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  input[type="text"] {
+    flex: 1; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--panel); color: var(--text); font-size: 1rem; outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--accent-2); }
+  select {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel); color: var(--text); font-size: 0.85rem; cursor: pointer; outline: none;
+  }
+  select:focus { border-color: var(--accent-2); }
+
+  button {
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+    padding: 11px 16px; border-radius: 10px; font-size: 0.9rem; cursor: pointer;
+    transition: transform 0.05s, background 0.15s, border-color 0.15s; white-space: nowrap;
+  }
+  button:hover { background: #2d3344; border-color: #3a4257; }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.primary { background: var(--accent-2); border-color: var(--accent-2); color: #07121c; font-weight: 600; }
+  button.primary:hover { background: #6cc6ff; }
+  button.warn { background: transparent; border-color: #6b3a3a; color: #ff9b9b; }
+  button.warn:hover { background: #2a1e22; }
+
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .controls button { width: 100%; }
+
+  .settings {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px;
+  }
+  #filterFields { display: flex; flex-direction: column; gap: 14px; }
+  #filterFields:empty { display: none; }
+  .field { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; }
+  .field label { color: var(--muted); min-width: 96px; }
+  .field input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .field .val { min-width: 96px; text-align: right; font-variant-numeric: tabular-nums; }
+  .toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--muted); }
+  .toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+  .history { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .history h3 { margin: 0 0 10px; font-size: 0.9rem; color: var(--muted); font-weight: 600; }
+  .history ul { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; }
+  .history li { display: flex; justify-content: space-between; padding: 7px 4px; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  .history li:last-child { border-bottom: none; }
+  .history .g-text { word-break: break-word; padding-right: 10px; }
+  .history .g-time { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .history .empty { color: var(--muted); font-size: 0.85rem; padding: 6px 4px; }
+  .history li.correct .g-text::before { content: "✓ "; color: var(--good); font-weight: 700; }
+  .history li.correct { color: var(--good); }
+
+  /* Leaderboard */
+  .leaderboard, .stage > .leaderboard { width: 800px; max-width: 100%; }
+  .leaderboard {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 16px;
+  }
+  .leaderboard h3 {
+    margin: 0 0 12px; font-size: 0.9rem; color: var(--muted); font-weight: 600;
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  }
+  .leaderboard h3 .lb-cat { color: var(--accent); }
+  .leaderboard h3 .lb-note { margin-left: auto; font-size: 0.68rem; color: var(--muted); font-weight: 400; }
+  .lb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .lb-cell {
+    background: var(--panel-2); border-radius: 10px; padding: 10px 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .lb-num { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb-lbl { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .lb-msg { margin-top: 12px; font-size: 0.88rem; color: var(--good); min-height: 1.2em; }
+  .lb-msg.neutral { color: var(--muted); }
+  .lb-global { margin-top: 6px; font-size: 0.84rem; color: var(--accent-2); min-height: 1.1em; }
+
+  /* Responsive — keep it usable on phones for screen-recording */
+  @media (max-width: 560px) {
+    body { padding: 16px 10px 36px; }
+    h1 { font-size: 1.3rem; }
+    .sub { font-size: 0.8rem; }
+    .cat-row { grid-template-columns: repeat(2, 1fr); }
+    .cat-btn { font-size: 0.82rem; padding: 10px 6px; }
+    .timer { font-size: 1.25rem; }
+    .controls { grid-template-columns: 1fr; }
+    .lb-num { font-size: 1.1rem; }
+    .field label { min-width: 78px; }
+  }
+
+  .ad-slot { width: 800px; max-width: 100%; margin: 0 auto 16px; min-height: 90px; }
+  footer { margin-top: 28px; font-size: 0.78rem; color: var(--muted); text-align: center; }
+  footer a { color: var(--accent-2); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <h1>Jig<span>shuffle</span></h1>
+  <div class="sub">Pick a category. The scrambled image self-sorts into place — guess it before it finishes.</div>
+
+  <div class="ad-slot" id="adTop" data-ad-slot="" style="display:none;"></div>
+
+  <div class="cat-row">
+    <button class="cat-btn active" data-cat="movies">🎬 Movies</button>
+    <button class="cat-btn" data-cat="tv">📺 TV Shows</button>
+    <button class="cat-btn" data-cat="characters">🦸 Super Heroes</button>
+    <button class="cat-btn" data-cat="anime">🌸 Anime</button>
+    <button class="cat-btn" data-cat="people">⭐ Famous People</button>
+    <button class="cat-btn" data-cat="pokemon">🔴 Pokémon</button>
+    <button class="cat-btn" data-cat="flags">🌍 Flags</button>
+    <button class="cat-btn" data-cat="all">🎲 All Categories</button>
+  </div>
+
+  <div class="stage">
+    <div class="canvas-wrap">
+      <canvas id="game" width="800" height="600"></canvas>
+      <canvas id="fxCanvas" width="800" height="600"></canvas>
+      <div class="overlay" id="overlay">
+        <div id="overlayText">Pick a category above to start.</div>
+      </div>
+    </div>
+
+    <div class="answer" id="answer">
+      <div class="label">The answer was</div>
+      <div class="text" id="answerText">—</div>
+      <div class="meta" id="answerMeta"></div>
+    </div>
+
+    <div class="hud">
+      <div class="timer"><span class="label">TIME</span><span id="timer">0.0s</span></div>
+      <div class="timer"><span class="label">SCORE</span><span id="score">0</span></div>
+      <div class="progress"><div id="progressBar"></div></div>
+      <div class="pct" id="pct">0%</div>
+    </div>
+
+    <div class="guess-row">
+      <input type="text" id="guessInput" placeholder="Type your guess and hit Enter…" autocomplete="off" />
+      <button class="primary" id="guessBtn">Guess</button>
+    </div>
+
+    <div class="controls">
+      <button id="newBtn">🔄 New Image</button>
+      <button class="warn" id="giveUpBtn">🏳️ Give Up</button>
+    </div>
+
+    <div class="leaderboard" id="leaderboard">
+      <h3>🏆 Leaderboard <span class="lb-cat" id="lbCat"></span><span class="lb-note">saved on this device</span></h3>
+      <div class="lb-grid">
+        <div class="lb-cell"><span class="lb-num" id="lbLast">—</span><span class="lb-lbl">Last</span></div>
+        <div class="lb-cell"><span class="lb-num" id="lbBest">—</span><span class="lb-lbl">Best</span></div>
+        <div class="lb-cell"><span class="lb-num" id="lbAvg">—</span><span class="lb-lbl">Average</span></div>
+        <div class="lb-cell"><span class="lb-num" id="lbCount">0</span><span class="lb-lbl">Solved</span></div>
+      </div>
+      <div class="lb-msg neutral" id="lbMsg"></div>
+      <div class="lb-global" id="lbGlobal"></div>
+    </div>
+
+    <div class="settings">
+      <div id="filterFields"></div>
+      <div class="field">
+        <label for="diffSlider">Difficulty</label>
+        <input type="range" id="diffSlider" min="0" max="2" step="1" value="1" />
+        <span class="val" id="diffVal">Medium · 20×20</span>
+      </div>
+      <div class="field">
+        <label for="speedSlider">Reveal time</label>
+        <input type="range" id="speedSlider" min="10" max="60" step="5" value="25" />
+        <span class="val" id="speedVal">~25s</span>
+      </div>
+      <div class="field">
+        <label for="soundSelect">Snap sound</label>
+        <select id="soundSelect">
+          <option value="thud" selected>Thud</option>
+          <option value="pop">Pop</option>
+          <option value="woodblock">Woodblock</option>
+          <option value="zap">Zap</option>
+          <option value="chime">Chime</option>
+          <option value="off">Off</option>
+        </select>
+        <label class="toggle" style="margin-left:auto;"><input type="checkbox" id="confettiToggle" checked /> Confetti</label>
+      </div>
+    </div>
+
+    <div class="history">
+      <h3>Your guesses this session</h3>
+      <ul id="historyList"><li class="empty">No guesses yet — start typing!</li></ul>
+    </div>
+
+    <div class="ad-slot" id="adBottom" data-ad-slot="" style="display:none;"></div>
+
+    <footer>
+      Jigshuffle — a photo guessing game.
+      <a href="privacy.html">Privacy Policy</a> ·
+      Images via TMDB, PokéAPI, Jikan, Superhero API &amp; flagcdn.
+    </footer>
+  </div>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   TMDB PROXY — the API key is NOT in this file. It lives as a secret inside a
+   Cloudflare Worker (see tmdb-proxy.worker.js + DEPLOY.md). Paste your Worker
+   URL below; the Worker injects the key server-side so it's never exposed.
+   ========================================================================= */
+const TMDB_PROXY = "https://YOUR-WORKER-SUBDOMAIN.workers.dev";
+// Build a proxied TMDB URL from a path+query that OMITS api_key (Worker adds it).
+function tmdb(path) { return TMDB_PROXY.replace(/\/$/, '') + path; }
+
+/* =========================================================================
+   SUPABASE — global leaderboard backend (free tier).
+   1. Create a project at supabase.com, then run the SQL in supabase-setup.sql.
+   2. Project Settings → API: copy the Project URL and the "anon public" key.
+   The anon key is SAFE to ship in the page — row-level security limits it to
+   inserting/reading scores only. Leave as-is to keep the board device-local.
+   ========================================================================= */
+const SUPABASE_URL = "https://ujqlxdshzenvahuvrczw.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_7cP9Yb06zB4CgCHenwU89w_sXAPEG7g"; // publishable key — safe to embed
+function supabaseEnabled() {
+  return SUPABASE_URL.startsWith('http') && SUPABASE_ANON_KEY.length > 20;
+}
+
+/* =========================================================================
+   GOOGLE ADSENSE — paste your publisher ID after Google approves the site
+   (e.g. "ca-pub-1234567890123456"). Leave blank to hide ad slots entirely.
+   Optionally set each slot's data-ad-slot in the HTML once you create units.
+   ========================================================================= */
+const ADSENSE_CLIENT = "";
+function initAds() {
+  if (!ADSENSE_CLIENT) return;
+  const s = document.createElement('script');
+  s.async = true;
+  s.crossOrigin = 'anonymous';
+  s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + ADSENSE_CLIENT;
+  document.head.appendChild(s);
+  document.querySelectorAll('.ad-slot').forEach(slot => {
+    slot.style.display = 'block';
+    const ins = document.createElement('ins');
+    ins.className = 'adsbygoogle';
+    ins.style.display = 'block';
+    ins.setAttribute('data-ad-client', ADSENSE_CLIENT);
+    ins.setAttribute('data-ad-slot', slot.dataset.adSlot || '');
+    ins.setAttribute('data-ad-format', 'auto');
+    ins.setAttribute('data-full-width-responsive', 'true');
+    slot.appendChild(ins);
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  });
+}
+
+// ---------- Elements ----------
+const gameCanvas = document.getElementById('game');
+const ctx = gameCanvas.getContext('2d');
+const fxCanvas = document.getElementById('fxCanvas');
+const fx = fxCanvas.getContext('2d');
+
+const overlay = document.getElementById('overlay');
+const overlayText = document.getElementById('overlayText');
+const answerBox = document.getElementById('answer');
+const answerTextEl = document.getElementById('answerText');
+const answerMetaEl = document.getElementById('answerMeta');
+
+const timerEl = document.getElementById('timer');
+const scoreEl = document.getElementById('score');
+const progressBar = document.getElementById('progressBar');
+const pctEl = document.getElementById('pct');
+
+const guessInput = document.getElementById('guessInput');
+const guessBtn = document.getElementById('guessBtn');
+const newBtn = document.getElementById('newBtn');
+const giveUpBtn = document.getElementById('giveUpBtn');
+
+const diffSlider = document.getElementById('diffSlider');
+const diffVal = document.getElementById('diffVal');
+const speedSlider = document.getElementById('speedSlider');
+const speedVal = document.getElementById('speedVal');
+const soundSelect = document.getElementById('soundSelect');
+const confettiToggle = document.getElementById('confettiToggle');
+const historyList = document.getElementById('historyList');
+const catButtons = Array.from(document.querySelectorAll('.cat-btn'));
+const lbCat = document.getElementById('lbCat');
+const lbLast = document.getElementById('lbLast');
+const lbBest = document.getElementById('lbBest');
+const lbAvg = document.getElementById('lbAvg');
+const lbCount = document.getElementById('lbCount');
+const lbMsg = document.getElementById('lbMsg');
+const lbGlobal = document.getElementById('lbGlobal');
+const filterFields = document.getElementById('filterFields');
+
+// ---------- Constants ----------
+const W = 800, H = 600;
+// Render the canvas at the device's real pixel density so it isn't upscaled
+// (and blurred) by the browser on high-DPI / retina displays.
+const DPR = Math.min(window.devicePixelRatio || 1, 3);
+function setupCanvas(cv, context) {
+  cv.width = W * DPR;
+  cv.height = H * DPR;
+  context.setTransform(DPR, 0, 0, DPR, 0, 0); // keep drawing in 0..W / 0..H space
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+}
+setupCanvas(gameCanvas, ctx);
+setupCanvas(fxCanvas, fx);
+
+const DIFF = [10, 20, 30];
+const DIFF_LABEL = ['Easy', 'Medium', 'Hard'];
+
+// ---------- Game state ----------
+let img = null;
+let category = 'movies';      // the selected tab (may be 'all')
+let roundCategory = 'movies'; // the actual category used this round
+const REAL_CATS = ['movies', 'tv', 'characters', 'anime', 'people', 'pokemon', 'flags'];
+let currentAnswer = null;   // { text, meta }
+
+let cols = 20, rows = 20, N = 400;
+let tileW = 0, tileH = 0;
+
+// Destination frame: where the whole image is drawn on the canvas, contain-fit
+// (letterboxed) so nothing is ever cropped off-screen.
+let frame = { x: 0, y: 0, w: 0, h: 0 };
+
+// Per-correct-index tile source rects.
+let tileSrc = [];            // tileSrc[k] = {sx,sy,sw,sh}
+// tileAt[slot] = which tile (correct index) currently occupies that slot.
+let tileAt = [];
+// slotOf[tile] = which slot that tile currently sits in (inverse of tileAt).
+let slotOf = [];
+// Visual pixel position + per-tile slide animation.
+let vx = [], vy = [];
+let aFromX = [], aFromY = [], aToX = [], aToY = [], aStart = [], aDur = [], anim = [];
+
+let running = false;
+let solved = false;
+let startTime = 0;
+let lastTime = 0;
+let swapAcc = 0;          // fractional swaps carried between frames
+let swapsTotal = 0;       // ~swaps needed to fully sort this scramble
+let elapsed = 0;
+let homeCount = 0;
+
+let guesses = [];
+let rafId = null;
+let lastSnapSound = 0;
+let sessionScore = 0;
+function updateScore() { scoreEl.textContent = String(sessionScore); }
+
+// ---------- Audio ----------
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { audioCtx = null; }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playSnap(now) {
+  const style = soundSelect.value;
+  if (style === 'off' || !audioCtx) return;
+  // Throttle so a burst of swaps doesn't turn into a wall of noise.
+  if (now - lastSnapSound < 28) return;
+  lastSnapSound = now;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain).connect(audioCtx.destination);
+
+  if (style === 'pop') {
+    // Bubbly upward blip.
+    osc.type = 'sine';
+    const f = 400 + Math.random() * 200;
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.exponentialRampToValueAtTime(f * 2.2, t + 0.05);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.16, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+    osc.start(t); osc.stop(t + 0.09);
+  } else if (style === 'woodblock') {
+    // Hollow percussive "tok".
+    osc.type = 'square';
+    const f = 820 + Math.random() * 140;
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.exponentialRampToValueAtTime(f * 0.82, t + 0.05);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    osc.start(t); osc.stop(t + 0.08);
+  } else if (style === 'zap') {
+    // Buzzy electronic downward sweep.
+    osc.type = 'sawtooth';
+    const f = 1100 + Math.random() * 300;
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.exponentialRampToValueAtTime(180, t + 0.08);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.1, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+    osc.start(t); osc.stop(t + 0.11);
+  } else if (style === 'chime') {
+    // Soft bell-like ping, longer ring.
+    osc.type = 'sine';
+    const f = 1046.5 + (Math.random() < 0.5 ? 0 : 271.5); // C6 or E6
+    osc.frequency.setValueAtTime(f, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    osc.start(t); osc.stop(t + 0.32);
+  } else {
+    // 'thud' (default): low pitch-dropping knock.
+    osc.type = 'triangle';
+    const base = 180 + Math.random() * 120;
+    osc.frequency.setValueAtTime(base, t);
+    osc.frequency.exponentialRampToValueAtTime(base * 0.5, t + 0.06);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.14, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    osc.start(t); osc.stop(t + 0.1);
+  }
+}
+
+// Rising arpeggio fanfare for a correct guess.
+function playVictory() {
+  if (soundSelect.value === 'off' || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const notes = [523.25, 659.25, 783.99, 1046.5];
+  notes.forEach((f, i) => {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'triangle';
+    o.frequency.value = f;
+    const ts = t + i * 0.085;
+    g.gain.setValueAtTime(0.0001, ts);
+    g.gain.exponentialRampToValueAtTime(0.2, ts + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ts + 0.34);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(ts);
+    o.stop(ts + 0.36);
+  });
+}
+
+// ---------- Easing ----------
+function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
+
+// =========================================================================
+//  IMAGE SOURCING — unified fetchRandomImage(category) -> {imageUrl, answerText, meta}
+// =========================================================================
+async function fetchRandomImage(cat) {
+  if (cat === 'movies') return fetchTmdbMovie();
+  if (cat === 'people') return fetchTmdbPerson();
+  if (cat === 'characters') return fetchCharacter();
+  if (cat === 'tv') return fetchTmdbTv();
+  if (cat === 'anime') return fetchAnime();
+  if (cat === 'flags') return fetchFlag();
+  return fetchPokemon();
+}
+
+// ---------- Per-category filters (narrow down the broad categories) ----------
+// Region filter for all TMDB categories. Default is USA so players get
+// recognizable American content; others can pick their own region.
+const TMDB_REGIONS = {
+  us:     { label: 'USA',           countries: 'US',                    langs: ['en'] },
+  uk:     { label: 'UK & Ireland',  countries: 'GB|IE',                 langs: ['en'] },
+  europe: { label: 'Europe',        countries: 'FR|DE|IT|ES|SE|NL|DK',  langs: ['fr', 'de', 'it', 'es', 'sv', 'nl'] },
+  latam:  { label: 'Latin America', countries: 'MX|AR|BR|CO|CL',        langs: ['es', 'pt'] },
+  easia:  { label: 'East Asia',     countries: 'KR|JP|CN|TW|HK',        langs: ['ko', 'ja', 'zh'] },
+  india:  { label: 'India',         countries: 'IN',                    langs: ['hi', 'ta', 'te', 'ml'] },
+  any:    { label: 'Anywhere',      countries: '',                      langs: null }
+};
+const REGION_OPTIONS = Object.keys(TMDB_REGIONS).map(k => [k, TMDB_REGIONS[k].label]);
+function currentRegion() {
+  return TMDB_REGIONS[filterValue('region')] || TMDB_REGIONS.us;
+}
+const DECADE_RANGES = {
+  '2020s': [2020, 2029], '2010s': [2010, 2019], '2000s': [2000, 2009],
+  '1990s': [1990, 1999], '1980s': [1980, 1989], '1970s': [1970, 1979]
+};
+// Returns a TMDB discover date-range query for the chosen decade ('' if All).
+function decadeQuery(dateField) {
+  const d = DECADE_RANGES[filterValue('decade')];
+  if (!d) return '';
+  return `&${dateField}.gte=${d[0]}-01-01&${dateField}.lte=${d[1]}-12-31`;
+}
+
+// Reusable filter definitions. Each category maps to an array of filters, so a
+// category can have several dropdowns (e.g. Region + Decade).
+const FILT_REGION = { id: 'region', label: 'Region', options: REGION_OPTIONS };
+const FILT_DECADE = { id: 'decade', label: 'Decade', options: [
+  ['all', 'All decades'], ['2020s', '2020s'], ['2010s', '2010s'], ['2000s', '2000s'],
+  ['1990s', '1990s'], ['1980s', '1980s'], ['1970s', '1970s'] ] };
+const CATEGORY_FILTERS = {
+  movies: [FILT_REGION, FILT_DECADE],
+  tv: [FILT_REGION, FILT_DECADE],
+  characters: [{ id: 'publisher', label: 'Publisher', options: [
+    ['all', 'All publishers'], ['marvel', 'Marvel'], ['dc', 'DC'] ] }],
+  people: [FILT_REGION],
+  anime: [{ id: 'mode', label: 'Mode', options: [
+    ['series', 'Guess the anime'], ['characters', 'Guess the character'] ] }],
+  flags: [{ id: 'region', label: 'Region', options: [
+    ['all', 'All regions'], ['Africa', 'Africa'], ['Americas', 'Americas'],
+    ['Asia', 'Asia'], ['Europe', 'Europe'], ['Oceania', 'Oceania'], ['us-states', 'US States'] ] }],
+  pokemon: [{ id: 'gen', label: 'Generation', options: [
+    ['all', 'All generations'], ['1', 'Gen 1 · Kanto'], ['2', 'Gen 2 · Johto'],
+    ['3', 'Gen 3 · Hoenn'], ['4', 'Gen 4 · Sinnoh'], ['5', 'Gen 5 · Unova'],
+    ['6', 'Gen 6 · Kalos'], ['7', 'Gen 7 · Alola'], ['8', 'Gen 8 · Galar'],
+    ['9', 'Gen 9 · Paldea'] ] }]
+};
+// Read the value of a named filter for the current category ('all' if absent).
+function filterValue(id) {
+  const sel = filterFields.querySelector(`select[data-fid="${id}"]`);
+  return sel ? sel.value : 'all';
+}
+function applyCategoryFilter() {
+  const cfg = CATEGORY_FILTERS[category] || [];
+  filterFields.innerHTML = '';
+  for (const f of cfg) {
+    const field = document.createElement('div');
+    field.className = 'field';
+    const label = document.createElement('label');
+    label.textContent = f.label;
+    const sel = document.createElement('select');
+    sel.dataset.fid = f.id;
+    for (const [v, l] of f.options) {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = l;
+      sel.appendChild(o);
+    }
+    sel.addEventListener('change', () => startRound());
+    field.append(label, sel);
+    filterFields.appendChild(field);
+  }
+}
+
+function tmdbKeyMissing() {
+  return !TMDB_PROXY || TMDB_PROXY.includes('YOUR-WORKER');
+}
+
+async function fetchTmdbMovie() {
+  if (tmdbKeyMissing()) throw new Error('Set your Cloudflare Worker URL (TMDB_PROXY) at the top of index.html to play Movies.');
+  const r = currentRegion();
+  const page = 1 + Math.floor(Math.random() * 8);
+  let url = tmdb(`/3/discover/movie?language=en-US` +
+            `&sort_by=popularity.desc&vote_count.gte=300&include_adult=false&page=${page}`);
+  if (r.countries) url += `&with_origin_country=${r.countries}`;
+  if (r === TMDB_REGIONS.us) url += `&with_original_language=en`;
+  url += decadeQuery('primary_release_date');
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`TMDB request failed (${res.status}). Check your API key.`);
+  const data = await res.json();
+  const pool = (data.results || []).filter(m => m.backdrop_path);
+  if (!pool.length) throw new Error('No movie backdrops returned, try New Image.');
+  const m = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    imageUrl: `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`,
+    answerText: m.title || m.name,
+    meta: (m.release_date || '').slice(0, 4) ? `Released ${(m.release_date || '').slice(0, 4)}` : '',
+    kind: 'title'
+  };
+}
+
+async function fetchTmdbPerson() {
+  if (tmdbKeyMissing()) throw new Error('Set your Cloudflare Worker URL (TMDB_PROXY) at the top of index.html to play Famous People.');
+  const r = currentRegion();
+  const page = 1 + Math.floor(Math.random() * 5);
+  const res = await fetch(tmdb(`/3/person/popular?page=${page}&language=en-US`));
+  if (!res.ok) throw new Error(`TMDB request failed (${res.status}). Check your API key.`);
+  const data = await res.json();
+  // Keep actors whose known_for matches the chosen region's language(s).
+  const inRegion = p =>
+    p.profile_path &&
+    p.known_for_department === 'Acting' &&
+    (!r.langs || (p.known_for || []).some(k => r.langs.includes(k.original_language)));
+  let pool = (data.results || []).filter(inRegion);
+  // Fall back to anyone with a photo if the strict filter empties the page.
+  if (!pool.length) pool = (data.results || []).filter(p => p.profile_path);
+  if (!pool.length) throw new Error('No people returned, try New Image.');
+  const p = pool[Math.floor(Math.random() * pool.length)];
+  const known = (p.known_for || [])
+    .filter(k => !r.langs || r.langs.includes(k.original_language))
+    .map(k => k.title || k.name).filter(Boolean).slice(0, 2).join(', ');
+  return {
+    imageUrl: `https://image.tmdb.org/t/p/w780${p.profile_path}`,
+    answerText: p.name,
+    meta: known ? `Known for: ${known}` : (p.known_for_department || '')
+  };
+}
+
+async function fetchTmdbTv() {
+  if (tmdbKeyMissing()) throw new Error('Set your Cloudflare Worker URL (TMDB_PROXY) at the top of index.html to play TV Shows.');
+  const r = currentRegion();
+  const page = 1 + Math.floor(Math.random() * 8);
+  let url = tmdb(`/3/discover/tv?language=en-US` +
+            `&sort_by=popularity.desc&vote_count.gte=100&page=${page}`);
+  if (r.countries) url += `&with_origin_country=${r.countries}`;
+  if (r === TMDB_REGIONS.us) url += `&with_original_language=en`;
+  url += decadeQuery('first_air_date');
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`TMDB request failed (${res.status}). Check your API key.`);
+  const data = await res.json();
+  const pool = (data.results || []).filter(s => s.backdrop_path);
+  if (!pool.length) throw new Error('No TV backdrops returned, try New Image.');
+  const s = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    imageUrl: `https://image.tmdb.org/t/p/w1280${s.backdrop_path}`,
+    answerText: s.name || s.original_name,
+    meta: (s.first_air_date || '').slice(0, 4) ? `First aired ${(s.first_air_date || '').slice(0, 4)}` : 'TV show',
+    kind: 'title'
+  };
+}
+
+// "Super Heroes" = actual comic character art (TMDB has no character portraits,
+// only actor headshots). Free, keyless dataset hosted on a CDN, narrowed to a
+// curated list of widely-recognized characters.
+const WELL_KNOWN_HEROES = new Set([
+  'Spider-Man','Iron Man','Captain America','Thor','Hulk','Black Widow','Hawkeye','Black Panther',
+  'Doctor Strange','Vision','Ant-Man','Wasp','Captain Marvel','Star-Lord','Gamora','Rocket Raccoon',
+  'Groot','Drax the Destroyer','Nebula','Loki','Thanos','Nick Fury','Wolverine','Cyclops','Storm',
+  'Jean Grey','Beast','Rogue','Gambit','Nightcrawler','Magneto','Professor X','Mystique','Deadpool',
+  'Cable','Daredevil','Punisher','Jessica Jones','Luke Cage','Iron Fist','Ghost Rider','Silver Surfer',
+  'Mister Fantastic','Invisible Woman','Human Torch','Thing','Doctor Doom','Venom','Carnage',
+  'Green Goblin','Quicksilver','Falcon','Winter Soldier','Batman','Superman','Wonder Woman','Flash',
+  'Aquaman','Cyborg','Robin','Nightwing','Supergirl','Green Arrow','Martian Manhunter','Joker',
+  'Harley Quinn','Lex Luthor','Catwoman','Bane','Penguin','Riddler','Two-Face','Poison Ivy','Darkseid',
+  'Black Adam','Deathstroke','Brainiac','Doomsday','Zatanna','Hawkgirl','Hellboy','Spawn','Sandman',
+  'Juggernaut','Kingpin','Red Skull','Ultron','Galactus','Bullseye'
+]);
+let heroList = null;
+async function fetchCharacter() {
+  if (!heroList) {
+    const res = await fetch('https://akabab.github.io/superhero-api/api/all.json');
+    if (!res.ok) throw new Error('Character data request failed, try New Image.');
+    heroList = (await res.json()).filter(h => h.images && h.images.lg && WELL_KNOWN_HEROES.has(h.name));
+  }
+  const pub = filterValue('publisher');
+  let pool = heroList;
+  if (pub === 'marvel') pool = heroList.filter(h => /marvel/i.test((h.biography && h.biography.publisher) || ''));
+  else if (pub === 'dc') pool = heroList.filter(h => /dc comics/i.test((h.biography && h.biography.publisher) || ''));
+  if (!pool.length) pool = heroList;
+  const h = pool[Math.floor(Math.random() * pool.length)];
+  const bio = h.biography || {};
+  const realName = bio.fullName && bio.fullName !== '-' ? bio.fullName : '';
+  return {
+    imageUrl: h.images.lg,
+    answerText: h.name,
+    meta: [bio.publisher, realName].filter(Boolean).join(' · ') || 'Comic character'
+  };
+}
+
+let animeListCache = null;
+let animeCharCache = null;
+async function fetchAnime() {
+  // Jikan (MyAnimeList) is free and keyless. Two modes: guess the series from
+  // its cover art, or guess the character from character art.
+  if (filterValue('mode') === 'characters') return fetchAnimeCharacter();
+  if (!animeListCache || Math.random() < 0.3) {
+    const page = 1 + Math.floor(Math.random() * 8);
+    const res = await fetch(`https://api.jikan.moe/v4/top/anime?page=${page}&limit=25`);
+    if (!res.ok) throw new Error('Jikan (anime) request failed, try New Image.');
+    const data = await res.json();
+    animeListCache = (data.data || []).filter(a => a.images && a.images.jpg);
+  }
+  if (!animeListCache.length) throw new Error('No anime returned, try New Image.');
+  const a = animeListCache[Math.floor(Math.random() * animeListCache.length)];
+  const imgs = a.images.jpg;
+  return {
+    imageUrl: imgs.large_image_url || imgs.image_url,
+    answerText: a.title_english || a.title,
+    meta: a.year ? `Anime · ${a.year}` : 'Anime',
+    kind: 'title'
+  };
+}
+async function fetchAnimeCharacter() {
+  if (!animeCharCache || Math.random() < 0.3) {
+    const page = 1 + Math.floor(Math.random() * 10);
+    const res = await fetch(`https://api.jikan.moe/v4/top/characters?page=${page}&limit=25`);
+    if (!res.ok) throw new Error('Jikan characters request failed, try New Image.');
+    const data = await res.json();
+    animeCharCache = (data.data || []).filter(c => c.images && c.images.jpg && c.images.jpg.image_url);
+  }
+  if (!animeCharCache.length) throw new Error('No characters returned, try New Image.');
+  const c = animeCharCache[Math.floor(Math.random() * animeCharCache.length)];
+  return {
+    imageUrl: c.images.jpg.image_url,
+    answerText: c.name.replace(/,/g, '').trim(),
+    meta: 'Anime character'
+  };
+}
+
+// ISO alpha-2 codes grouped by continent (built from the ISO-3166 dataset) so
+// "Flags" can be filtered by region. Antarctica and non-countries are omitted.
+const FLAG_REGIONS = {
+  Africa: "ao bf bi bj bw cd cf cg ci cm cv dj dz eg eh er et ga gh gm gn gq gw io ke km lr ls ly ma mg ml mr mu mw mz na ne ng re rw sc sd sh sl sn so ss st sz td tf tg tn tz ug yt za zm zw".split(' '),
+  Americas: "ag ai ar aw bb bl bm bo bq br bs bv bz ca cl co cr cu cw dm do ec fk gf gd gl gp gs gt gy hn ht jm kn ky lc mf mq ms mx ni pa pe pm pr py sr sv sx tc tt us uy vc ve vg vi".split(' '),
+  Asia: "ae af am az bd bh bn bt cn cy ge hk id il in iq ir jo jp kg kh kp kr kw kz la lb lk mm mn mo mv my np om ph pk ps qa sa sg sy th tj tl tm tr tw uz vn ye".split(' '),
+  Europe: "ad al at ax ba be bg by ch cz de dk ee es fi fo fr gb gg gi gr hr hu ie im is it je li lt lu lv mc md me mk mt nl no pl pt ro rs ru se si sj sk sm ua va xk".split(' '),
+  Oceania: "as au cc ck cx fj fm gu hm ki mh mp nc nf nr nu nz pf pg pn pw sb tk to tv um vu wf ws".split(' ')
+};
+let flagNames = null; // code -> country name
+async function fetchFlag() {
+  // flagcdn.com is free, keyless, CORS-enabled, and reliable (restcountries'
+  // /all endpoint was retired). codes.json gives every code -> name.
+  if (!flagNames) {
+    const res = await fetch('https://flagcdn.com/en/codes.json');
+    if (!res.ok) throw new Error('Flag list request failed, try New Image.');
+    flagNames = await res.json();
+  }
+  const region = filterValue('region');
+  let pool;
+  if (region === 'us-states') {
+    // flagcdn also serves US state flags under us-XX codes.
+    pool = Object.keys(flagNames).filter(c => /^us-[a-z]{2}$/.test(c));
+  } else if (region !== 'all' && FLAG_REGIONS[region]) {
+    pool = FLAG_REGIONS[region].filter(c => flagNames[c]);
+  } else {
+    // All clean 2-letter country codes, minus org flags (EU, UN).
+    pool = Object.keys(flagNames).filter(c => /^[a-z]{2}$/.test(c) && c !== 'eu' && c !== 'un');
+  }
+  if (!pool.length) throw new Error('No flags in that region, try New Image.');
+  const code = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    imageUrl: `https://flagcdn.com/w1280/${code}.png`,
+    answerText: flagNames[code],
+    meta: region === 'us-states' ? 'US state flag' : 'Country flag'
+  };
+}
+
+function titleCase(s) {
+  return s.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// National-dex id ranges per generation (used by the gen selector).
+const POKE_GENS = {
+  all: [1, 1025], '1': [1, 151], '2': [152, 251], '3': [252, 386],
+  '4': [387, 493], '5': [494, 649], '6': [650, 721], '7': [722, 809],
+  '8': [810, 905], '9': [906, 1025]
+};
+async function fetchPokemon() {
+  // PokéAPI is free and keyless.
+  const [lo, hi] = POKE_GENS[filterValue('gen')] || POKE_GENS.all;
+  const id = lo + Math.floor(Math.random() * (hi - lo + 1));
+  const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+  if (!res.ok) throw new Error('PokéAPI request failed, try New Image.');
+  const data = await res.json();
+  const art = data.sprites && data.sprites.other && data.sprites.other['official-artwork'];
+  const url = (art && art.front_default) || (data.sprites && data.sprites.front_default);
+  if (!url) throw new Error('No artwork for that Pokémon, try New Image.');
+  const typeList = (data.types || []).map(t => t.type.name);
+  const primary = typeList[0] || 'normal';
+  return {
+    imageUrl: url,
+    answerText: titleCase(data.name.replace(/-/g, ' ')),
+    meta: typeList.length ? `Type: ${titleCase(typeList.join(' / '))}` : 'Pokémon',
+    // Composite the transparent artwork onto a type-colored gradient backdrop.
+    bg: TYPE_COLORS[primary] || TYPE_COLORS.normal
+  };
+}
+
+// Primary type -> [light, dark] gradient stops for the composited backdrop.
+const TYPE_COLORS = {
+  normal:   ['#b6b6a8', '#7a7a6d'], fire:     ['#ffb774', '#e8632a'],
+  water:    ['#76b6f0', '#2f6fd6'], electric: ['#ffe680', '#e8b800'],
+  grass:    ['#9be08a', '#3fa64a'], ice:      ['#aef0ec', '#5fc7c0'],
+  fighting: ['#e08a7a', '#b02a1f'], poison:   ['#cf8fd6', '#8e3fa0'],
+  ground:   ['#e6cf8a', '#bf9b4a'], flying:   ['#bcd0f0', '#7f9fd6'],
+  psychic:  ['#ff9fc0', '#e0497f'], bug:      ['#cfe07a', '#8fa62a'],
+  rock:     ['#d6c38a', '#a68a4a'], ghost:    ['#a890c8', '#5f4a8e'],
+  dragon:   ['#9f8af0', '#5f3fc0'], dark:     ['#8a7f74', '#4a3f37'],
+  steel:    ['#c8c8d6', '#8a8a9f'], fairy:    ['#ffc0d6', '#e07faa']
+};
+
+// Draw a transparent image onto an opaque gradient background, return a canvas
+// usable as a drawImage source (so every tile is opaque, not see-through).
+function composeBackground(image, bg) {
+  const SCALE = 2;
+  const off = document.createElement('canvas');
+  off.width = W * SCALE;
+  off.height = H * SCALE;
+  const oc = off.getContext('2d');
+  const g = oc.createLinearGradient(0, 0, off.width, off.height);
+  g.addColorStop(0, bg[0]);
+  g.addColorStop(1, bg[1]);
+  oc.fillStyle = g;
+  oc.fillRect(0, 0, off.width, off.height);
+  // Contain the artwork within the frame with a little breathing room.
+  const pad = 0.10;
+  const maxW = off.width * (1 - pad * 2), maxH = off.height * (1 - pad * 2);
+  const s = Math.min(maxW / image.width, maxH / image.height);
+  const dw = image.width * s, dh = image.height * s;
+  oc.imageSmoothingEnabled = true;
+  oc.imageSmoothingQuality = 'high';
+  oc.drawImage(image, (off.width - dw) / 2, (off.height - dh) / 2, dw, dh);
+  return off;
+}
+
+// =========================================================================
+//  ROUND FLOW
+// =========================================================================
+async function startRound() {
+  cancelAnim();
+  running = false;
+  solved = false;
+  img = null;
+  currentAnswer = null;
+  guessInput.value = '';
+  guessInput.disabled = false;
+  guessBtn.disabled = false;
+  giveUpBtn.disabled = false;
+  answerBox.classList.remove('show');
+  ctx.clearRect(0, 0, W, H);
+  fx.clearRect(0, 0, W, H);
+  resetTimer();
+  setProgress(0, 1);
+  renderLeaderboard(null);
+  // "All Categories" picks a fresh random category each round.
+  roundCategory = category === 'all' ? REAL_CATS[Math.floor(Math.random() * REAL_CATS.length)] : category;
+  setOverlay(true, `Loading a ${labelFor(category)} image…`, true);
+
+  let result;
+  try {
+    result = await fetchRandomImage(roundCategory);
+  } catch (err) {
+    setOverlay(true, '⚠️ ' + err.message, false);
+    return;
+  }
+
+  // Try with crossOrigin first (keeps the canvas untainted where the host sends
+  // CORS headers); if that fails, retry without it. We only ever drawImage —
+  // never read pixels back — so a tainted canvas is harmless here.
+  loadImageWithFallback(result.imageUrl, (image) => {
+    // If the source is transparent (Pokémon), bake it onto a backdrop so the
+    // scramble is fully opaque and fills the frame.
+    img = result.bg ? composeBackground(image, result.bg) : image;
+    currentAnswer = { text: result.answerText || '—', meta: result.meta || '', generic: result.generic || null, kind: result.kind || 'name' };
+    computeFit();
+    buildTiles();
+    setOverlay(false);
+    beginReveal();
+  }, () => {
+    setOverlay(true, '⚠️ The image failed to load. Hit New Image to try another.', false);
+  });
+}
+
+function loadImageWithFallback(url, onLoad, onFail) {
+  const tryLoad = (useCors) => {
+    const image = new Image();
+    if (useCors) image.crossOrigin = 'anonymous';
+    image.referrerPolicy = 'no-referrer';
+    image.onload = () => onLoad(image);
+    image.onerror = () => { if (useCors) tryLoad(false); else onFail(); };
+    image.src = url;
+  };
+  tryLoad(true);
+}
+
+function labelFor(cat) {
+  return ({ movies: 'movie', people: 'person', characters: 'super hero',
+    tv: 'TV show', anime: 'anime', flags: 'flag', pokemon: 'Pokémon' })[cat] || 'random';
+}
+
+// ---------- Contain-fit frame (whole image visible, letterboxed) ----------
+function computeFit() {
+  const scale = Math.min(W / img.width, H / img.height);
+  frame.w = img.width * scale;
+  frame.h = img.height * scale;
+  frame.x = (W - frame.w) / 2;
+  frame.y = (H - frame.h) / 2;
+}
+
+// ---------- Build + scramble tiles ----------
+function buildTiles() {
+  cols = DIFF[parseInt(diffSlider.value, 10)];
+  rows = cols;
+  N = cols * rows;
+  tileW = frame.w / cols;
+  tileH = frame.h / rows;
+
+  tileSrc = new Array(N);
+  const sTileW = img.width / cols;
+  const sTileH = img.height / rows;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      tileSrc[r * cols + c] = {
+        sx: c * sTileW,
+        sy: r * sTileH,
+        sw: sTileW,
+        sh: sTileH
+      };
+    }
+  }
+
+  // tileAt = a shuffled permutation -> every slot holds some tile, full image
+  // is on screen from frame one, just scrambled.
+  tileAt = Array.from({ length: N }, (_, i) => i);
+  shuffle(tileAt);
+  slotOf = new Array(N);
+  for (let s = 0; s < N; s++) slotOf[tileAt[s]] = s;
+
+  vx = new Array(N); vy = new Array(N);
+  aFromX = new Array(N); aFromY = new Array(N);
+  aToX = new Array(N); aToY = new Array(N);
+  aStart = new Array(N); aDur = new Array(N); anim = new Array(N);
+  for (let tile = 0; tile < N; tile++) {
+    const p = slotXY(slotOf[tile]);
+    vx[tile] = p.x; vy[tile] = p.y;
+    anim[tile] = false;
+  }
+
+  homeCount = countHome();
+  drawFrame(performance.now());
+  setProgress(homeCount, N);
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+}
+
+function slotXY(slot) {
+  const c = slot % cols;
+  const r = (slot - c) / cols;
+  return { x: frame.x + c * tileW, y: frame.y + r * tileH };
+}
+
+function countHome() {
+  let n = 0;
+  for (let s = 0; s < N; s++) if (tileAt[s] === s) n++;
+  return n;
+}
+
+// =========================================================================
+//  REVEAL — swap tiles toward home (sorting visualization)
+// =========================================================================
+function beginReveal() {
+  running = true;
+  solved = false;
+  startTime = performance.now();
+  lastTime = startTime;
+  swapAcc = 0;
+  // A full scramble needs ~ (N - homeCount) swaps to sort. Pace those swaps
+  // across the chosen reveal time so wall-clock duration is grid-independent.
+  swapsTotal = Math.max(1, N - homeCount);
+  rafId = requestAnimationFrame(loop);
+  guessInput.focus();
+}
+
+// Bring the tile that belongs in slot `i` home by swapping it with whatever
+// currently occupies slot `i`. Guarantees one more tile lands home per call.
+function swapTowardHome() {
+  // Pick a random slot that isn't already correct.
+  let i = Math.floor(Math.random() * N);
+  let guard = 0;
+  while (tileAt[i] === i && guard++ < N) i = (i + 1) % N;
+  if (tileAt[i] === i) return false; // everything home
+
+  const j = slotOf[i];           // tile `i` currently lives in slot j
+  const a = tileAt[i];           // occupant of slot i (will move to slot j)
+  const b = tileAt[j];           // === i, the tile that belongs in slot i
+
+  tileAt[i] = b; tileAt[j] = a;
+  slotOf[b] = i; slotOf[a] = j;
+
+  startSlide(a, slotXY(j));
+  startSlide(b, slotXY(i));
+  return true;
+}
+
+function startSlide(tile, target) {
+  aFromX[tile] = vx[tile];
+  aFromY[tile] = vy[tile];
+  aToX[tile] = target.x;
+  aToY[tile] = target.y;
+  aStart[tile] = performance.now();
+  aDur[tile] = 220 + Math.random() * 120;
+  anim[tile] = true;
+}
+
+function loop(now) {
+  elapsed = now - startTime;
+  let dt = now - lastTime;
+  lastTime = now;
+  if (dt > 250) dt = 250; // clamp after tab-switch / stalls so it doesn't lurch
+
+  if (running) {
+    const targetSeconds = parseInt(speedSlider.value, 10);
+    const swapsPerSecond = swapsTotal / targetSeconds;
+    swapAcc += swapsPerSecond * (dt / 1000);
+    while (swapAcc >= 1) {
+      swapAcc -= 1;
+      if (!swapTowardHome()) { swapAcc = 0; break; }
+    }
+  }
+
+  // Advance per-tile slides.
+  let anyAnimating = false;
+  let justLanded = false;
+  for (let tile = 0; tile < N; tile++) {
+    if (!anim[tile]) continue;
+    const p = Math.min(1, (now - aStart[tile]) / aDur[tile]);
+    const e = easeOutCubic(p);
+    vx[tile] = aFromX[tile] + (aToX[tile] - aFromX[tile]) * e;
+    vy[tile] = aFromY[tile] + (aToY[tile] - aFromY[tile]) * e;
+    if (p >= 1) {
+      vx[tile] = aToX[tile]; vy[tile] = aToY[tile];
+      anim[tile] = false;
+      if (slotOf[tile] === tile) justLanded = true; // landed in its correct slot
+    } else {
+      anyAnimating = true;
+    }
+  }
+  if (justLanded) playSnap(now);
+
+  drawFrame(now);
+
+  homeCount = countHome();
+  setProgress(homeCount, N);
+  timerEl.textContent = (elapsed / 1000).toFixed(1) + 's';
+
+  if (homeCount >= N && !anyAnimating) {
+    endRound('revealed');
+    return;
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+function drawFrame(now) {
+  ctx.clearRect(0, 0, W, H);
+  if (!img) return;
+  // Draw every tile at its current visual position — the grid is always full.
+  for (let tile = 0; tile < N; tile++) {
+    const s = tileSrc[tile];
+    ctx.drawImage(img, s.sx, s.sy, s.sw, s.sh, vx[tile], vy[tile], tileW + 0.6, tileH + 0.6);
+  }
+}
+
+// outcome: 'won' (correct guess) | 'revealed' (ran to completion) | 'gaveup'
+// tier (when won): 'specific' (exact answer) | 'generic' (broad category)
+function endRound(outcome, tier) {
+  if (solved) return;
+  running = false;
+  solved = true;
+  // Stop the reveal loop so a queued frame can't repaint over the answer text.
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  const won = outcome === 'won';
+
+  // Snap everything home + clean draw, then stamp the answer onto the image.
+  for (let s = 0; s < N; s++) { tileAt[s] = s; slotOf[s] = s; anim[s] = false; }
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(img, frame.x, frame.y, frame.w, frame.h);
+  drawAnswerOnImage(currentAnswer ? currentAnswer.text : '', won);
+
+  setProgress(N, N);
+  timerEl.textContent = (elapsed / 1000).toFixed(1) + 's';
+  guessInput.disabled = true;
+  guessBtn.disabled = true;
+  giveUpBtn.disabled = true;
+
+  // Score the round (only correct guesses earn points).
+  let points = 0;
+  if (won) {
+    points = roundPoints(tier, elapsed / 1000);
+    sessionScore += points;
+    updateScore();
+    recordSolve(category, elapsed / 1000);
+    playVictory();
+  }
+  showAnswer(won, tier, points);
+
+  renderLeaderboard(won ? elapsed / 1000 : null);
+  if (won) {
+    // Post to the global board, then refresh so the stats include this run.
+    const t = elapsed / 1000, cat = category;
+    submitScore(cat, t).then(() => { if (category === cat) renderGlobal(cat, t); });
+  }
+
+  if (won && confettiToggle.checked) launchConfetti(260);
+  else if (outcome === 'revealed' && confettiToggle.checked) launchConfetti(140);
+  flashEffect();
+}
+
+// Points: specific answer is worth more than the broad category, plus a speed
+// bonus that fades as the round runs longer.
+function roundPoints(tier, seconds) {
+  const base = tier === 'generic' ? 40 : 100;
+  const speedBonus = Math.max(0, Math.round(50 - seconds));
+  return base + speedBonus;
+}
+
+// Triggered when a guess matches the answer mid-reveal.
+function win(tier) {
+  if (solved || !img) return;
+  endRound('won', tier || 'specific');
+}
+
+// ---------- Give Up: snap all tiles home immediately ----------
+function giveUp() {
+  if (!img || solved) return;
+  endRound('gaveup');
+}
+
+function showAnswer(won, tier, points) {
+  if (!currentAnswer) return;
+  answerTextEl.textContent = (won ? '✓ ' : '') + currentAnswer.text;
+  let meta = currentAnswer.meta || '';
+  if (won && points) {
+    const partialHint = currentAnswer.generic
+      ? ` · close! name the exact breed next time for more`
+      : ` · partial credit — the full title scores more`;
+    meta = `+${points} pts` + (tier === 'generic' ? partialHint : '') + (meta ? ' · ' + meta : '');
+  }
+  answerMetaEl.textContent = meta;
+  answerBox.classList.add('show');
+}
+
+// Draw the answer name directly on the canvas so a screen recording captures it.
+function drawAnswerOnImage(text, won) {
+  if (!text) return;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const maxW = W * 0.9;
+  let font = 66, lines = null;
+  while (font >= 22) {
+    ctx.font = `800 ${font}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    lines = wrapLines(text, maxW, 2);
+    if (lines) break;
+    font -= 3;
+  }
+  if (!lines) {
+    ctx.font = `800 ${font}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    lines = wrapLines(text, maxW, 3) || [text];
+  }
+  const lineH = font * 1.12;
+  const blockH = lineH * lines.length;
+  const pad = font * 0.5;
+  const topY = H - H * 0.05 - blockH;
+
+  // Dark scrim so text is legible over any image.
+  const scrimTop = topY - pad * 1.4;
+  const grad = ctx.createLinearGradient(0, scrimTop, 0, H);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.78)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, scrimTop, W, H - scrimTop);
+
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = font * 0.16;
+  ctx.strokeStyle = 'rgba(0,0,0,0.88)';
+  ctx.fillStyle = won ? '#ffd34d' : '#ffffff';
+  let y = topY + lineH / 2;
+  for (let i = 0; i < lines.length; i++) {
+    const line = (won && i === 0) ? '✓ ' + lines[i] : lines[i];
+    ctx.strokeText(line, W / 2, y);
+    ctx.fillText(line, W / 2, y);
+    y += lineH;
+  }
+  ctx.restore();
+}
+
+// Greedy word wrap at the current ctx.font; returns null if it needs > maxLines
+// or a single word doesn't fit (so the caller can shrink the font).
+function wrapLines(text, maxW, maxLines) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (!cur || ctx.measureText(test).width <= maxW) cur = test;
+    else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines) return null;
+  for (const l of lines) if (ctx.measureText(l).width > maxW + 1) return null;
+  return lines;
+}
+
+// ---------- HUD ----------
+function setProgress(done, total) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  progressBar.style.width = pct + '%';
+  pctEl.textContent = pct + '%';
+}
+function resetTimer() { elapsed = 0; timerEl.textContent = '0.0s'; }
+
+// ---------- Guesses ----------
+function submitGuess() {
+  const text = guessInput.value.trim();
+  if (!text) return;
+  const atMs = (running || solved) ? elapsed : 0;
+  const tier = (!solved && currentAnswer) ? matchTier(text, currentAnswer) : null;
+  guesses.unshift({ text, atMs, correct: !!tier });
+  guessInput.value = '';
+  renderHistory();
+  if (tier) win(tier);
+}
+function renderHistory() {
+  if (!guesses.length) {
+    historyList.innerHTML = '<li class="empty">No guesses yet — start typing!</li>';
+    return;
+  }
+  historyList.innerHTML = '';
+  for (const g of guesses) {
+    const li = document.createElement('li');
+    if (g.correct) li.className = 'correct';
+    const txt = document.createElement('span');
+    txt.className = 'g-text'; txt.textContent = g.text;
+    const time = document.createElement('span');
+    time.className = 'g-time'; time.textContent = '@ ' + (g.atMs / 1000).toFixed(1) + 's';
+    li.append(txt, time);
+    historyList.appendChild(li);
+  }
+}
+
+// ---------- Answer matching ----------
+function normalize(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD')               // split accented letters into base + mark
+    .replace(/[^a-z0-9 ]/g, ' ')    // drop the marks (and other punctuation)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+// Strong match = you essentially got the whole answer (full credit).
+function strongMatch(guess, answer) {
+  const g = normalize(guess), a = normalize(answer);
+  if (!g || !a) return false;
+  if (g === a) return true;
+  // Space-insensitive exact match ("spiderman" == "spider man").
+  if (g.replace(/ /g, '') === a.replace(/ /g, '')) return true;
+  // A substantial substring of the answer (e.g. "new moon" for "The Twilight
+  // Saga: New Moon"), or the guess containing the whole answer.
+  if (g.length >= 4 && a.includes(g) && g.length >= a.length * 0.5) return true;
+  if (g.includes(' ') && g.length >= 6 && a.includes(g)) return true;
+  if (a.length >= 4 && g.includes(a)) return true;
+  return false;
+}
+// Word match = you got one significant word of the answer ("twilight" for "The
+// Twilight Saga: New Moon", "luffy" for "Luffy Monkey D.").
+function wordMatch(guess, answer) {
+  const g = normalize(guess), a = normalize(answer);
+  if (!g) return false;
+  return a.split(' ').some(w => w.length >= 5 && w === g);
+}
+// Returns 'specific' (named the exact answer → full points), 'generic' (named
+// the broad category or part of a title → partial points), or null.
+function matchTier(guess, ans) {
+  if (strongMatch(guess, ans.text)) return 'specific';
+  if (ans.generic && strongMatch(guess, ans.generic)) return 'generic';
+  if (wordMatch(guess, ans.text)) {
+    // For multi-word titles, one matched word is partial credit; for a person
+    // or character name, one name is enough for full credit.
+    return ans.kind === 'title' ? 'generic' : 'specific';
+  }
+  return null;
+}
+
+// ---------- Leaderboard (local, per-device) ----------
+const STATS_KEY = 'jigshuffle.stats.v1';
+let stats = loadStats();
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function saveStats() {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {}
+}
+function recordSolve(cat, seconds) {
+  if (!stats[cat]) stats[cat] = [];
+  stats[cat].push(+seconds.toFixed(2));
+  saveStats();
+}
+function catLabel(cat) {
+  return ({ movies: 'Movies', people: 'People', characters: 'Super Heroes',
+    tv: 'TV Shows', anime: 'Anime', flags: 'Flags', pokemon: 'Pokémon',
+    all: 'All Categories' })[cat] || cat;
+}
+function renderLeaderboard(lastTime) {
+  const arr = stats[category] || [];
+  const fmt = v => (v == null ? '—' : v.toFixed(1) + 's');
+  lbCat.textContent = '· ' + catLabel(category);
+  lbLast.textContent = fmt(lastTime);
+  if (arr.length) {
+    const best = Math.min(...arr);
+    const avg = arr.reduce((a, b) => a + b, 0) / arr.length;
+    lbBest.textContent = fmt(best);
+    lbAvg.textContent = fmt(avg);
+    lbCount.textContent = String(arr.length);
+    if (lastTime != null) {
+      // arr already includes this run; compare against the rest.
+      const others = arr.length - 1;
+      const beat = arr.filter(t => t > lastTime).length;
+      const pct = others > 0 ? Math.round((beat / others) * 100) : 100;
+      let msg;
+      if (lastTime <= best + 1e-9) msg = '🎉 New personal best!';
+      else if (lastTime < avg) msg = `⚡ ${(avg - lastTime).toFixed(1)}s faster than your average`;
+      else msg = `${(lastTime - best).toFixed(1)}s off your best — keep going`;
+      if (others > 0) msg += ` · Beat ${pct}% of your ${catLabel(category)} runs`;
+      lbMsg.textContent = msg;
+      lbMsg.classList.remove('neutral');
+    } else {
+      lbMsg.textContent = `${arr.length} solved · guess correctly to log a new time.`;
+      lbMsg.classList.add('neutral');
+    }
+  } else {
+    lbBest.textContent = '—'; lbAvg.textContent = '—'; lbCount.textContent = '0';
+    lbMsg.textContent = 'No solves yet — guess one right to start your board.';
+    lbMsg.classList.add('neutral');
+  }
+  renderGlobal(category, lastTime);
+}
+
+// ---------- Global leaderboard (Supabase) ----------
+const sbHeaders = () => ({
+  apikey: SUPABASE_ANON_KEY,
+  Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json'
+});
+async function submitScore(cat, seconds) {
+  if (!supabaseEnabled()) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
+      method: 'POST',
+      headers: { ...sbHeaders(), Prefer: 'return=minimal' },
+      body: JSON.stringify({ category: cat, seconds: +seconds.toFixed(2) })
+    });
+  } catch (e) { /* offline / blocked — local board still works */ }
+}
+async function fetchGlobalStats(cat, seconds) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/leaderboard_stats`, {
+    method: 'POST',
+    headers: sbHeaders(),
+    body: JSON.stringify({ p_category: cat, p_seconds: seconds == null ? null : +seconds.toFixed(2) })
+  });
+  if (!res.ok) throw new Error('stats ' + res.status);
+  const data = await res.json();
+  return Array.isArray(data) ? data[0] : data;
+}
+async function renderGlobal(cat, lastTime) {
+  if (!supabaseEnabled()) {
+    lbGlobal.textContent = '🌍 Add Supabase keys (top of file) to enable the global board.';
+    return;
+  }
+  lbGlobal.textContent = '🌍 Loading global stats…';
+  try {
+    const s = await fetchGlobalStats(cat, lastTime);
+    if (category !== cat) return; // user switched categories while loading
+    if (!s || !s.total) { lbGlobal.textContent = '🌍 No global times yet — be the first!'; return; }
+    let txt = `🌍 Global avg ${(+s.avg).toFixed(1)}s · best ${(+s.best).toFixed(1)}s · ${s.total} plays`;
+    if (lastTime != null && s.beat_pct != null) txt += ` · you beat ${Math.round(s.beat_pct)}% worldwide`;
+    lbGlobal.textContent = txt;
+  } catch (e) {
+    lbGlobal.textContent = '';
+  }
+}
+
+// ---------- FX ----------
+let confettiRaf = null;
+function launchConfetti(count) {
+  const colors = ['#ffb347', '#47b8ff', '#5fd38a', '#ff6b9d', '#c084fc', '#ffd93d'];
+  const pieces = [];
+  const n = count || 160;
+  for (let i = 0; i < n; i++) {
+    pieces.push({
+      x: Math.random() * W, y: -20 - Math.random() * H * 0.4,
+      vx: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 4,
+      size: 5 + Math.random() * 7, rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 0.3, color: colors[(Math.random() * colors.length) | 0]
+    });
+  }
+  if (confettiRaf) cancelAnimationFrame(confettiRaf);
+  const start = performance.now();
+  function step(now) {
+    fx.clearRect(0, 0, W, H);
+    let alive = false;
+    for (const p of pieces) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.rot += p.vrot;
+      if (p.y < H + 20) alive = true;
+      fx.save(); fx.translate(p.x, p.y); fx.rotate(p.rot);
+      fx.fillStyle = p.color; fx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      fx.restore();
+    }
+    if (alive && now - start < 5000) confettiRaf = requestAnimationFrame(step);
+    else fx.clearRect(0, 0, W, H);
+  }
+  confettiRaf = requestAnimationFrame(step);
+}
+function flashEffect() {
+  document.querySelector('.canvas-wrap').animate(
+    [{ filter: 'brightness(1)' }, { filter: 'brightness(1.8)' }, { filter: 'brightness(1)' }],
+    { duration: 500, easing: 'ease-out' }
+  );
+}
+
+// ---------- Misc ----------
+function setOverlay(show, text, spinner) {
+  if (text != null) {
+    overlayText.parentElement; // noop guard
+    overlay.innerHTML = (spinner ? '<div class="spinner"></div>' : '') + `<div>${text}</div>`;
+  }
+  overlay.classList.toggle('hidden', !show);
+}
+function cancelAnim() {
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  if (confettiRaf) cancelAnimationFrame(confettiRaf);
+  confettiRaf = null;
+  fx.clearRect(0, 0, W, H);
+}
+
+// ---------- Events ----------
+catButtons.forEach(btn => btn.addEventListener('click', () => {
+  ensureAudio();
+  catButtons.forEach(b => b.classList.toggle('active', b === btn));
+  category = btn.dataset.cat;
+  applyCategoryFilter();
+  startRound();
+}));
+
+guessBtn.addEventListener('click', () => { ensureAudio(); submitGuess(); });
+guessInput.addEventListener('keydown', e => { if (e.key === 'Enter') { ensureAudio(); submitGuess(); } });
+newBtn.addEventListener('click', () => { ensureAudio(); startRound(); });
+giveUpBtn.addEventListener('click', () => { ensureAudio(); giveUp(); });
+
+diffSlider.addEventListener('input', () => {
+  const d = parseInt(diffSlider.value, 10);
+  diffVal.textContent = `${DIFF_LABEL[d]} · ${DIFF[d]}×${DIFF[d]}`;
+});
+diffSlider.addEventListener('change', () => {
+  // Re-scramble current image at the new grid size without refetching.
+  if (img) { cancelAnim(); answerBox.classList.remove('show'); resetTimer(); buildTiles(); beginReveal(); }
+});
+speedSlider.addEventListener('input', () => {
+  speedVal.textContent = `~${speedSlider.value}s`;
+});
+
+// ---------- Boot ----------
+diffVal.textContent = `${DIFF_LABEL[+diffSlider.value]} · ${DIFF[+diffSlider.value]}×${DIFF[+diffSlider.value]}`;
+speedVal.textContent = `~${speedSlider.value}s`;
+applyCategoryFilter();
+renderLeaderboard(null);
+initAds();
+setOverlay(true, 'Pick a category above to start.', false);
+</script>
+</body>
+</html>
