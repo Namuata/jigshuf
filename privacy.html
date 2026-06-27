@@ -4,61 +4,94 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Privacy Policy — Jigshuffle</title>
+<meta name="description" content="Privacy Policy for Jigshuffle, the free daily image guessing game." />
+<link rel="canonical" href="https://jigshuffle.com/privacy.html" />
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5574535299348276" crossorigin="anonymous"></script>
 <style>
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: #0f1117; color: #e8eaf0; line-height: 1.6; padding: 32px 16px 64px; }
-  main { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 1.6rem; }
-  h2 { font-size: 1.1rem; margin-top: 28px; color: #ffb347; }
-  a { color: #47b8ff; }
-  .muted { color: #8b90a3; font-size: 0.85rem; }
-  code { background: #232735; padding: 1px 5px; border-radius: 4px; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --fg: #e8eaf0; --muted: #8b8fa8; --panel: #1a1d2e;
+    --border: #2a2d3e; --accent: #7c6af7; --accent-2: #a78bfa;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, sans-serif;
+         line-height: 1.7; padding: 0 16px 64px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { padding: 32px 0 24px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  header a { color: var(--accent-2); text-decoration: none; font-size: 0.9rem; }
+  header a:hover { text-decoration: underline; }
+  h1 { font-size: 1.8rem; color: var(--accent); margin-bottom: 6px; }
+  .updated { font-size: 0.82rem; color: var(--muted); }
+  h2 { font-size: 1.15rem; color: var(--accent-2); margin: 32px 0 10px; }
+  p, li { font-size: 0.92rem; color: var(--muted); margin-bottom: 12px; }
+  ul { padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--accent-2); }
+  a:hover { text-decoration: underline; }
+  footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
+           font-size: 0.8rem; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
-<main>
-  <h1>Privacy Policy</h1>
-  <p class="muted">Last updated: 24 June 2026. This policy covers the Jigshuffle web game ("the Game").</p>
+<div class="wrap">
+  <header>
+    <a href="/">&larr; Back to Jigshuffle</a>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: June 2025</p>
+  </header>
 
-  <p>Jigshuffle is a browser-based image guessing game. We aim to collect as little
-  as possible. This page explains what is stored and which third parties are involved.</p>
+  <main>
+    <p>This Privacy Policy describes how Jigshuffle ("we", "us", or "our") handles information when you use the Jigshuffle website at <a href="https://jigshuffle.com">jigshuffle.com</a>.</p>
 
-  <h2>What we store on your device</h2>
-  <p>The Game saves your personal best times and guess counts in your browser's
-  <code>localStorage</code> so your leaderboard persists between visits. This data stays
-  on your device and can be cleared at any time via your browser settings.</p>
+    <h2>1. Information We Collect</h2>
+    <p>Jigshuffle does not require you to create an account or provide any personal information to play.</p>
+    <p>We store the following data <strong>locally in your browser only</strong> using the Web Storage API (localStorage). This data never leaves your device:</p>
+    <ul>
+      <li>Your game score and current streak</li>
+      <li>Your best streak and total rounds played</li>
+      <li>Your in-session guess history</li>
+      <li>Your selected game category and filter preferences</li>
+      <li>Your Daily Challenge completion status for the current day</li>
+    </ul>
+    <p>This data is stored under keys prefixed with <code>jig_</code> and can be cleared at any time by clearing your browser's local storage or site data.</p>
 
-  <h2>Leaderboard data we store remotely</h2>
-  <p>When you guess an image correctly, the Game may send the <em>category</em> and your
-  <em>solve time in seconds</em> to our database provider (Supabase) to power the global
-  leaderboard. This record contains no name, email, IP, or any information that identifies
-  you personally.</p>
+    <h2>2. Cookies and Advertising</h2>
+    <p>Jigshuffle displays advertisements served by <strong>Google AdSense</strong>. Google may use cookies and similar technologies to serve personalised ads based on your browsing history and interests.</p>
+    <p>For more information on how Google uses data, please visit:</p>
+    <ul>
+      <li><a href="https://policies.google.com/privacy" rel="noopener" target="_blank">Google Privacy Policy</a></li>
+      <li><a href="https://policies.google.com/technologies/ads" rel="noopener" target="_blank">How Google uses information from sites that use its services</a></li>
+      <li><a href="https://adssettings.google.com/" rel="noopener" target="_blank">Google Ad Settings</a> (opt out of personalised ads)</li>
+    </ul>
+    <p>You can also opt out of interest-based advertising at <a href="https://www.aboutads.info/choices/" rel="noopener" target="_blank">aboutads.info/choices</a> or <a href="https://www.youronlinechoices.eu/" rel="noopener" target="_blank">youronlinechoices.eu</a>.</p>
 
-  <h2>Advertising</h2>
-  <p>This site may display ads served by Google AdSense. Google and its partners may use
-  cookies and similar technologies to serve ads based on your prior visits to this and other
-  websites. You can opt out of personalized advertising by visiting
-  <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>,
-  and learn more at
-  <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">Google's advertising policy</a>.
-  For visitors in the EEA/UK, a consent prompt governs personalized ads.</p>
+    <h2>3. Third-Party APIs</h2>
+    <p>Jigshuffle loads images and data from the following third-party services. When your browser fetches content from these services, your IP address and standard browser headers are transmitted to them under their own privacy policies.</p>
+    <ul>
+      <li><strong>The Movie Database (TMDB)</strong> — movie and TV show posters. <a href="https://www.themoviedb.org/privacy-policy" rel="noopener" target="_blank">TMDB Privacy Policy</a></li>
+      <li><strong>PokéAPI</strong> — Pokémon artwork. <a href="https://pokeapi.co/" rel="noopener" target="_blank">pokeapi.co</a></li>
+      <li><strong>Jikan / MyAnimeList</strong> — anime cover images. <a href="https://myanimelist.net/about/privacy_policy" rel="noopener" target="_blank">MAL Privacy Policy</a></li>
+      <li><strong>Wikimedia Commons / Wikidata</strong> — company logos and character images. <a href="https://foundation.wikimedia.org/wiki/Privacy_policy" rel="noopener" target="_blank">Wikimedia Privacy Policy</a></li>
+      <li><strong>Riot Games Data Dragon</strong> — League of Legends champion artwork. <a href="https://www.riotgames.com/en/privacy-notice" rel="noopener" target="_blank">Riot Privacy Notice</a></li>
+      <li><strong>flagcdn.com</strong> — country flag images.</li>
+    </ul>
 
-  <h2>Third-party image sources</h2>
-  <p>Images are loaded directly from third-party APIs: The Movie Database (TMDB), PokéAPI,
-  Jikan (MyAnimeList), the Superhero API, and flagcdn. Your browser contacts these
-  services to fetch images; their own privacy policies apply to those requests.</p>
+    <h2>4. Analytics</h2>
+    <p>We do not currently use any first-party analytics service. Aggregate usage data may be available through Google AdSense reporting.</p>
 
-  <h2>Children</h2>
-  <p>Some categories (e.g. Pokémon, anime) appeal to younger audiences. We do not knowingly
-  collect personal information from children. The remote leaderboard stores only an anonymous
-  category and time.</p>
+    <h2>5. Children's Privacy</h2>
+    <p>Jigshuffle is not directed at children under the age of 13. We do not knowingly collect personal information from children. If you believe a child has provided personal information, please contact us so we can take appropriate action.</p>
 
-  <h2>Contact</h2>
-  <p>Questions about this policy? Email <a href="mailto:YOUR_EMAIL_HERE">YOUR_EMAIL_HERE</a>.</p>
+    <h2>6. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. The "Last updated" date at the top of this page will reflect any changes. Continued use of the site after changes constitutes acceptance of the updated policy.</p>
 
-  <p><a href="index.html">← Back to the game</a></p>
-</main>
+    <h2>7. Contact</h2>
+    <p>If you have any questions about this Privacy Policy, please use our <a href="contact.html">contact form</a>.</p>
+  </main>
+
+  <footer>
+    &copy; 2025 Jigshuffle &middot; <a href="/">Play the game</a> &middot; <a href="privacy.html">Privacy Policy</a>
+  </footer>
+</div>
 </body>
 </html>
