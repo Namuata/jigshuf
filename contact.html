@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contact — Jigshuffle</title>
+<meta name="description" content="Contact the Jigshuffle team." />
+<link rel="canonical" href="https://jigshuffle.com/contact.html" />
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5574535299348276" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --fg: #e8eaf0; --muted: #8b8fa8; --panel: #1a1d2e;
+    --border: #2a2d3e; --accent: #7c6af7; --accent-2: #a78bfa;
+    --good: #4ade80; --bad: #f87171;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, sans-serif;
+         line-height: 1.7; padding: 0 16px 64px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { padding: 32px 0 24px; border-bottom: 1px solid var(--border); margin-bottom: 32px; }
+  header a { color: var(--accent-2); text-decoration: none; font-size: 0.9rem; }
+  header a:hover { text-decoration: underline; }
+  h1 { font-size: 1.8rem; color: var(--accent); margin-bottom: 6px; }
+  .sub { font-size: 0.9rem; color: var(--muted); }
+  p { font-size: 0.92rem; color: var(--muted); margin-bottom: 12px; }
+  form { margin-top: 24px; }
+  label { display: block; font-size: 0.85rem; color: var(--fg); margin: 16px 0 6px; }
+  input, textarea {
+    width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--fg); font: inherit; font-size: 0.92rem; padding: 11px 13px; outline: none;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 130px; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  button {
+    margin-top: 20px; background: var(--accent); color: #fff; border: none; border-radius: 8px;
+    font: inherit; font-weight: 600; font-size: 0.95rem; padding: 12px 22px; cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  button:hover { background: var(--accent-2); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .status { margin-top: 16px; font-size: 0.9rem; min-height: 1.2em; }
+  .status.ok { color: var(--good); }
+  .status.err { color: var(--bad); }
+  footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
+           font-size: 0.8rem; color: var(--muted); text-align: center; }
+  footer a { color: var(--accent-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/">&larr; Back to Jigshuffle</a>
+    <h1>Contact</h1>
+    <p class="sub">Questions, bugs, or feedback? Drop us a note below.</p>
+  </header>
+
+  <main>
+    <p>We read every message. We&rsquo;ll only use your email to reply to you.</p>
+
+    <form id="contactForm" novalidate>
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" autocomplete="name" maxlength="100" required />
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" autocomplete="email" maxlength="150" required />
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" maxlength="3000" required></textarea>
+
+      <!-- Honeypot: hidden from people, often filled by bots. If set, we drop it. -->
+      <div class="hp" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <button type="submit" id="submitBtn">Send message</button>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </form>
+  </main>
+
+  <footer>
+    &copy; 2025 Jigshuffle &middot; <a href="/">Play the game</a> &middot; <a href="privacy.html">Privacy Policy</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   Paste the Web App URL you get after deploying the Apps Script (see the
+   instructions / contact-form.gs). It looks like:
+   https://script.google.com/macros/s/AKfyc.../exec
+   ========================================================================= */
+const GAS_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+
+const form = document.getElementById('contactForm');
+const statusEl = document.getElementById('status');
+const submitBtn = document.getElementById('submitBtn');
+
+function setStatus(msg, kind) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (kind ? ' ' + kind : '');
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  // Bot caught by the honeypot — pretend success, don't send.
+  if (form.website.value) { setStatus("Thanks! Your message has been sent.", 'ok'); form.reset(); return; }
+
+  const name = form.name.value.trim();
+  const email = form.email.value.trim();
+  const message = form.message.value.trim();
+  if (!name || !email || !message) { setStatus("Please fill in all fields.", 'err'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setStatus("Please enter a valid email address.", 'err'); return; }
+
+  if (!GAS_URL || GAS_URL.includes('YOUR_APPS_SCRIPT')) {
+    setStatus("Contact form isn't configured yet (set GAS_URL).", 'err');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  setStatus("Sending…");
+  try {
+    // URLSearchParams keeps this a "simple" request (no CORS preflight). The
+    // Apps Script redirects to googleusercontent, which allows the response.
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: new URLSearchParams({ name, email, message,
+        page: location.href, ts: new Date().toISOString() })
+    });
+    const data = await res.json().catch(() => ({ result: res.ok ? 'success' : 'error' }));
+    if (data.result === 'success') {
+      setStatus("Thanks! Your message has been sent.", 'ok');
+      form.reset();
+    } else {
+      throw new Error(data.error || 'Send failed');
+    }
+  } catch (err) {
+    setStatus("Sorry, something went wrong. Please try again, or email us directly.", 'err');
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

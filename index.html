@@ -206,9 +206,20 @@
   footer a:hover { text-decoration: underline; }
 </style>
 </head>
+  <div style="display:flex;justify-content:center;margin:16px 0;">
+  <iframe
+    src="sailrx-banner-728x90.html"
+    width="728"
+    height="90"
+    frameborder="0"
+    scrolling="no"
+    style="border:0;display:block;"
+    title="Sponsored"
+  ></iframe>
+</div>
 <body>
   <h1>Jig<span>shuffle</span></h1>
-  <div class="sub">Pick a category. The scrambled image self-sorts into place — guess it before it finishes.</div>
+  <div class="sub">Pick a category. Guess the scrambled image before it self-sorts into place.</div>
 
   <div class="ad-slot" id="adTop" data-ad-slot="" style="display:none;"></div>
 
@@ -295,17 +306,30 @@
 
     <div class="history">
       <h3>Your guesses this session</h3>
-      <ul id="historyList"><li class="empty">No guesses yet — start typing!</li></ul>
+      <ul id="historyList"><li class="empty">Start Guessing!</li></ul>
     </div>
 
     <div class="ad-slot" id="adBottom" data-ad-slot="" style="display:none;"></div>
 
     <footer>
-      Jigshuffle — a photo guessing game.
+      Jigshuffle is a photo guessing game.
       <a href="privacy.html">Privacy Policy</a> ·
+      <a href="contact.html">Contact</a> ·
       Images via TMDB, PokéAPI, Jikan, Superhero API &amp; flagcdn.
     </footer>
   </div>
+
+  <div style="display:flex;justify-content:center;margin:16px 0;">
+  <iframe
+    src="sailrx-banner-728x90.html"
+    width="728"
+    height="90"
+    frameborder="0"
+    scrolling="no"
+    style="border:0;display:block;"
+    title="Sponsored"
+  ></iframe>
+</div>
 
 <script>
 "use strict";
@@ -1409,7 +1433,7 @@ function renderLeaderboard(lastTime) {
     }
   } else {
     lbBest.textContent = '—'; lbAvg.textContent = '—'; lbCount.textContent = '0';
-    lbMsg.textContent = 'No solves yet — guess one right to start your board.';
+    lbMsg.textContent = 'Guess one right to start your board.';
     lbMsg.classList.add('neutral');
   }
   renderGlobal(category, lastTime);
