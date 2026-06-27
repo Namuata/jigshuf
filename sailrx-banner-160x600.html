@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SailRx Telehealth — 160×600 Skyscraper</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 160px;
+        height: 600px;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      .banner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 16px;
+        color: #1f3a4d;
+        text-decoration: none;
+        text-align: center;
+        background: linear-gradient(180deg, #f5f0e6 0%, #ede4d3 50%, #e6dcc6 100%);
+        overflow: hidden;
+      }
+
+      .banner::before {
+        content: "";
+        position: absolute;
+        inset: -40%;
+        background: radial-gradient(circle at 50% 25%, rgba(74, 144, 191, 0.18) 0%, transparent 50%);
+        pointer-events: none;
+      }
+
+      .banner::after {
+        content: "";
+        position: absolute;
+        bottom: -60px;
+        left: -60px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: rgba(74, 144, 191, 0.07);
+        pointer-events: none;
+      }
+
+      .pill {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(74, 144, 191, 0.12);
+        backdrop-filter: blur(4px);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #2b5a7c;
+      }
+
+      .pill-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #4a90bf;
+        box-shadow: 0 0 8px rgba(74, 144, 191, 0.6);
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .headline {
+        font-size: 22px;
+        line-height: 1.1;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #1f3a4d;
+      }
+
+      .subheadline {
+        font-size: 13px;
+        line-height: 1.4;
+        color: #3d5a70;
+      }
+
+      .promo {
+        font-size: 12px;
+        font-weight: 700;
+        color: #2b5a7c;
+        line-height: 1.4;
+      }
+
+      .promo-code {
+        display: inline-block;
+        background: rgba(74, 144, 191, 0.15);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #1f3a4d;
+      }
+
+      .bottom {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .brand {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        color: #1f3a4d;
+      }
+
+      .brand span {
+        color: #4a90bf;
+        font-weight: 500;
+      }
+
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 14px;
+        border-radius: 8px;
+        background: #4a90bf;
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(74, 144, 191, 0.25);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .cta svg {
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+      }
+
+      .banner:hover .cta {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(74, 144, 191, 0.35);
+      }
+
+      .sponsored {
+        position: absolute;
+        bottom: 5px;
+        left: 16px;
+        font-size: 8px;
+        opacity: 0.55;
+        color: #5a6f7f;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="https://sailrx.co" target="_blank" rel="noopener sponsored" class="banner" aria-label="SailRx - Clinician-reviewed treatments, shipped to your door. No insurance, no waiting rooms. Use code jigshuffle for 25 dollars off. Visit sailrx.co">
+      <div class="pill">
+        <span class="pill-dot"></span>
+        Online Care
+      </div>
+
+      <div class="content">
+        <h1 class="headline">Clinician-reviewed treatments, shipped to your door.</h1>
+        <p class="subheadline">No insurance, no waiting rooms — just a clear path forward.</p>
+        <p class="promo">Use code <span class="promo-code">jigshuffle</span> for $25 off all orders</p>
+      </div>
+
+      <div class="bottom">
+        <div class="brand">SailRx<span>.co</span></div>
+        <div class="cta">
+          Visit SailRx
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"></path>
+            <path d="m12 5 7 7-7 7"></path>
+          </svg>
+        </div>
+      </div>
+
+      <span class="sponsored">Sponsored</span>
+    </a>
+  </body>
+</html>
